@@ -220,3 +220,26 @@ def generate_ticket(neo4j_graph, llm_chain, input_question):
     )
     new_title, new_question = extract_title_and_question(llm_response["answer"])
     return (new_title, new_question)
+
+def configure_llm_domain_extract_from_code(llm):
+    # LLM only response
+    template = """
+    You are an expert assistant in Domain-Driven Design, skilled at providing clear and concise descriptions of the domains represented in code.
+    """
+    system_message_prompt = SystemMessagePromptTemplate.from_template(template)
+    human_template = "{question}"
+    human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+    chat_prompt = ChatPromptTemplate.from_messages(
+        [system_message_prompt, human_message_prompt]
+    )
+
+    def generate_llm_output(
+        user_input: str, callbacks: List[Any], prompt=chat_prompt
+    ) -> str:
+        chain = prompt | llm
+        answer = chain.invoke(
+            {"question": user_input}, config={"callbacks": callbacks}
+        ).content
+        return {"answer": answer}
+
+    return generate_llm_output
